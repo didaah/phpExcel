@@ -1,0 +1,95 @@
+<?php
+// $Id$
+
+/**
+ *  将数组转换为 excel，保存为文件或直接输出下载 
+ * @param array $header 
+ *  表头，确定 excel 的列数，如： array('name' => '名称', 'city' => '城市');
+ * @param array $data 
+ *  多行数据，每行键名需与 $header 对应，如：
+ *    array(
+ *      array('name' => '张三', 'city' => '上海'),
+ *      array('name' => '李四', 'city' => '北京'),
+ *    )
+ * @param string $filepath 
+ *  文件路径，若有，则保存为文件。相对于系统默认文件目录的路径，如：myexcel/test.xls
+ * @param array $values 
+ *  excel 文档的基本信息
+ * @param string $version 
+ *  excel 版本，默认为 excel 2003
+ * @access public
+ * @return void
+ */
+function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = array(), $version = 'Excel2007') {
+
+  module_include_file('Classes/PHPExcel.php', 'phpExcel');
+
+  $default_value = array(
+    'Creator' => 'Dida', // 作者
+    'LastModifiedBy' => 'Dida', // 最后更新
+    'Subject' => '', // 文档主题
+    'Title' => 'Dida Excel', // 文档标题
+    'Description' => 'Dida Excel', // 描述
+    'Keywords' => 'Dida', // 关键词
+    'Category' => 'Dida', // 类别
+  );
+
+  $values = array_merge($default_value, $values);
+
+  if (empty($values['Subject'])) $values['Subject'] = $values['Title'];
+
+  $excel = new PHPExcel();
+
+  $keys = range('A', 'Z');
+  $rows = array();
+  
+  $excel->getActiveSheet()->getColumnDimension('A')->setWidth(20); 
+  $excel->getActiveSheet()->getColumnDimension('B')->setWidth(20); 
+
+  // 解析表头，不超过 26 列
+  $i = 0;
+  foreach ($header as $key => $value) {
+    $excel->setActiveSheetIndex(0)->setCellValue($keys[$i] . '1', $value);
+    $rows[$key] = $keys[$i];
+    ++$i;
+  }
+  
+  // 写入文档基本信息
+  $i = 2;
+  
+  foreach ($data as  $doc) {
+    if (is_array($doc) || is_object($doc)) {
+      foreach ($doc as $key => $value) {
+        if (empty($rows[$key])) continue;
+        $excel->setActiveSheetIndex(0)->setCellValue($rows[$key] . $i, $value);
+      }
+      ++$i;
+    }
+  }
+  
+  $excel->setActiveSheetIndex(0);
+
+  // Excel5 或 Excel2007
+  $objWriter = PHPExcel_IOFactory::createWriter($excel, $version);
+
+  // 写入文件
+  if (!empty($filepath)) {
+    $filename = basename($filepath);
+    if ($path = file_mkdir(file_directory_path() . '/' . dirname($filepath))) {
+      return $objWriter->save($path . '/' . $filename);
+    }
+  } else {
+    // 输出下载
+    if ($version == 'Excel5') {
+      header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+      $values['Title'] .= '.xls';
+    } else {
+      header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      $values['Title'] .= '.xlsx';
+    }
+    header('Content-Disposition: attachment;filename="' . $values['Title'] . '"');
+    header('Cache-Control: max-age=0');
+    $objWriter->save('php://output');
+    exit;
+  }
+}
