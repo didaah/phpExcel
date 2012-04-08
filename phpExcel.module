@@ -8,11 +8,11 @@
  * @param array $data 
  *  多行数据，每行键名需与 $header 对应，如：
  *    array(
- *      array('name' => '张三', 'city' => '上海'),
+ *      array('name' => '张三', 'city' => array('data' => '上海', 'type' => 'string')),
  *      array('name' => '李四', 'city' => '北京'),
  *    )
  * @param string $filepath 
- *  文件路径，若有，则保存为文件。相对于系统默认文件目录的路径，如：myexcel/test.xls
+ *  文件路径，若有，则保存为文件
  * @param array $values 
  *  excel 文档的基本信息
  * @param string $version 
@@ -43,25 +43,43 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
   $keys = range('A', 'Z');
   $rows = array();
   
-  $excel->getActiveSheet()->getColumnDimension('A')->setWidth(20); 
-  $excel->getActiveSheet()->getColumnDimension('B')->setWidth(20); 
+  //$excel->getActiveSheet()->getColumnDimension('A')->setWidth(20); 
+  //$excel->getActiveSheet()->getColumnDimension('B')->setWidth(20); 
 
   // 解析表头，不超过 26 列
   $i = 0;
   foreach ($header as $key => $value) {
-    $excel->setActiveSheetIndex(0)->setCellValue($keys[$i] . '1', $value);
-    $rows[$key] = $keys[$i];
+    if (empty($value)) $value = array('data' => $value);
+    $excel->setActiveSheetIndex(0)->setCellValue($keys[$i] . '1', $value['data']);
+    $rows[$key] =array('data' => $keys[$i]['pdata'], 'type' => $value['type']);
     ++$i;
   }
   
   // 写入文档基本信息
   $i = 2;
+
+  $types = phpExcel_get_data_type();
   
   foreach ($data as  $doc) {
     if (is_array($doc) || is_object($doc)) {
       foreach ($doc as $key => $value) {
         if (empty($rows[$key])) continue;
-        $excel->setActiveSheetIndex(0)->setCellValue($rows[$key] . $i, $value);
+
+        if (!is_array($value)) {
+          if (empty($rows[$key]['type'])) {
+            $excel->setActiveSheetIndex(0)->setCellValue($rows[$key]['data'] . $i, $value);
+          } else {
+            $value = array('data' => $value, 'type' => $rows[$key]['type']);
+            $excel->setActiveSheetIndex(0)->setCellValueExplicit($rows[$key]['data'] . $i, $value['data'], $types[$value['type']]);
+          }
+        } else if (!empty($value['data'])) {
+          if (empty($value['type']) && !empty($rows[$key]['type'])) {
+            $value['type'] = $rows[$key]['type'];
+          }
+          $excel->setActiveSheetIndex(0)->setCellValueExplicit($rows[$key]['data'] . $i, $value['data'], $types[$value['type']]);
+        } else {
+          $excel->setActiveSheetIndex(0)->setCellValue($rows[$key]['data'] . $i, '');
+        } 
       }
       ++$i;
     }
@@ -75,8 +93,9 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
   // 写入文件
   if (!empty($filepath)) {
     $filename = basename($filepath);
-    if ($path = file_mkdir(file_directory_path() . '/' . dirname($filepath))) {
-      return $objWriter->save($path . '/' . $filename);
+    if ($path = file_mkdir(dirname($filepath))) {
+      $objWriter->save($path . '/' . $filename);
+      return true;
     }
   } else {
     // 输出下载
@@ -92,4 +111,22 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
     $objWriter->save('php://output');
     exit;
   }
+}
+
+/**
+ * 数据类型 
+ * @param string $key 
+ * @access public
+ * @return array|*
+ */
+function phpExcel_get_data_type($key = '') {
+  $types = array(
+    'string' => PHPExcel_Cell_DataType::TYPE_STRING, // 字符串
+    'null' => PHPExcel_Cell_DataType::TYPE_NULL,
+    'formula' => PHPExcel_Cell_DataType::TYPE_FORMULA, // 公式
+    'bool' => PHPExcel_Cell_DataType::TYPE_BOOL,
+    'error' => PHPExcel_Cell_DataType::TYPE_ERROR,
+  );
+
+  return $key ? $types[$key] : $types;
 }
