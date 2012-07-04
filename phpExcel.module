@@ -43,15 +43,23 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
   $keys = range('A', 'Z');
   $rows = array();
   
-  //$excel->getActiveSheet()->getColumnDimension('A')->setWidth(20); 
-  //$excel->getActiveSheet()->getColumnDimension('B')->setWidth(20); 
-
   // 解析表头，不超过 26 列
   $i = 0;
   foreach ($header as $key => $value) {
     if (empty($value)) $value = array('data' => $value);
     $excel->setActiveSheetIndex(0)->setCellValue($keys[$i] . '1', $value['data']);
-    $rows[$key] =array('data' => $keys[$i]['pdata'], 'type' => $value['type']);
+    $rows[$key] = $value;
+    $rows[$key]['data'] = $keys[$i]['pdata'];
+
+    // 列宽度
+    if (!empty($value['width'])) {
+      $excel->getActiveSheet()->getColumnDimension($keys[$i]['pdata'])->setWidth($value['width']); 
+    }
+
+    // 自动换行
+    if (!empty($value['wrap'])) {
+      $excel->getActiveSheet()->getStyle($keys[$i]['pdata'])->getAlignment()->setWrapText(true);
+    }
     ++$i;
   }
   
@@ -64,6 +72,28 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
     if (is_array($doc) || is_object($doc)) {
       foreach ($doc as $key => $value) {
         if (empty($rows[$key])) continue;
+        
+        if ($i%2 == 0) {
+          if (!empty($rows[$key]['even'])) {
+            $color = $rows[$key]['even'];
+          } else {
+            $color = 'FFFFFF';
+          }
+        } else {
+          if (!empty($rows[$key]['odd'])) {
+            $color = $rows[$key]['odd'];
+          } else {
+            $color = 'E8E8E8';
+          }
+        }
+
+        // 设置颜色
+        $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getFill()->setFillType(PHPExcel_Style_Fill::FILL_SOLID);
+        $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getFill()->getStartColor()->setRGB($color);
+
+        if (!empty($rows[$key]['wrap'])) {
+          $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getAlignment()->setWrapText(true);
+        }
 
         if (!is_array($value)) {
           if (empty($rows[$key]['type'])) {
