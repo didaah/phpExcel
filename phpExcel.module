@@ -11,6 +11,11 @@
  *      array('name' => '张三', 'city' => array('data' => '上海', 'type' => 'string')),
  *      array('name' => '李四', 'city' => '北京'),
  *    )
+ *  如数字键名，将与 header 按顺序对应
+ *    array(
+ *      array('张三', '中国'),
+ *      array('李四', '北京'),
+ *    );
  * @param string $filepath 
  *  文件路径，若有，则保存为文件
  * @param array $values 
@@ -67,10 +72,15 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
   $i = 2;
 
   $types = phpExcel_get_data_type();
-  
+
+  $keys = array_keys($rows);
+
   foreach ($data as  $doc) {
     if (is_array($doc) || is_object($doc)) {
       foreach ($doc as $key => $value) {
+        // 若是数字递增键名，按顺序与 header 对应 
+        if (is_numeric($key)) $key = $keys[$key];
+
         if (empty($rows[$key])) continue;
         
         if ($i%2 == 0) {
