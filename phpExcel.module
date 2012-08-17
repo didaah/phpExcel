@@ -77,9 +77,12 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
 
   foreach ($data as  $doc) {
     if (is_array($doc) || is_object($doc)) {
+      $j = 0;
       foreach ($doc as $key => $value) {
         // 若是数字递增键名，按顺序与 header 对应 
-        if (is_numeric($key)) $key = $keys[$key];
+        if (is_numeric($key)) $key = $keys[$j];
+        
+        $j++;
 
         if (empty($rows[$key])) continue;
         
