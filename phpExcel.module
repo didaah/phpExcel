@@ -4,7 +4,12 @@
 /**
  *  将数组转换为 excel，保存为文件或直接输出下载 
  * @param array $header 
- *  表头，确定 excel 的列数，如： array('name' => '名称', 'city' => '城市');
+ *  表头，确定 excel 的列数
+ *    如： array('name' => '名称', 'city' => '城市');
+ *    指定每列的数据格式，如：
+ *      array(
+ *        'name' => array('data' => '名称', 'type' => 'string')
+ *      )
  * @param array $data 
  *  多行数据，每行键名需与 $header 对应，如：
  *    array(
@@ -51,7 +56,9 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
   // 解析表头，不超过 26 列
   $i = 0;
   foreach ($header as $key => $value) {
-    if (empty($value)) $value = array('data' => $value);
+    
+    if (!is_array($value)) $value = array('data' => $value);
+
     $excel->setActiveSheetIndex(0)->setCellValue($keys[$i] . '1', $value['data']);
     $rows[$key] = $value;
     $rows[$key]['data'] = $keys[$i]['pdata'];
@@ -104,6 +111,14 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
         $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getFill()->setFillType(PHPExcel_Style_Fill::FILL_SOLID);
         $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getFill()->getStartColor()->setRGB($color);
 
+        $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getBorders()->getTop()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+        $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getBorders()->getLeft()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+        $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getBorders()->getBottom()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+        $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getBorders()->getRight()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+
+        //$excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getBorders()->getTOP()->getColor()->setRGB('FF0000');
+        //$excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getBorders()->getBottom()->getColor()->setRGB('FF0000');
+        
         if (!empty($rows[$key]['wrap'])) {
           $excel->getActiveSheet()->getStyle($rows[$key]['data'] . $i)->getAlignment()->setWrapText(true);
         }
