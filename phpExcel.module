@@ -50,10 +50,23 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
 
   $excel = new PHPExcel();
 
+  // 定义表格基本列：A B C D .. Z
   $keys = range('A', 'Z');
+
+  $_j = 0; 
+
+  // 超过 26 列，扩展
+  while (count($keys) < count($header)) {
+    for ($_k = 0; $_k < 26; $_k++) {
+      // AA AB AC AD
+      // BA BB BC BD
+      $keys[] =  $keys[$_j] . $keys[$_k];
+    }
+    $_j++;
+  }
+  
   $rows = array();
   
-  // 解析表头，不超过 26 列
   $i = 0;
   foreach ($header as $key => $value) {
     
@@ -61,16 +74,16 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
 
     $excel->setActiveSheetIndex(0)->setCellValue($keys[$i] . '1', $value['data']);
     $rows[$key] = $value;
-    $rows[$key]['data'] = $keys[$i]['pdata'];
-
+    $rows[$key]['data'] = $keys[$i];
+    
     // 列宽度
     if (!empty($value['width'])) {
-      $excel->getActiveSheet()->getColumnDimension($keys[$i]['pdata'])->setWidth($value['width']); 
+      $excel->getActiveSheet()->getColumnDimension($keys[$i])->setWidth($value['width']); 
     }
 
     // 自动换行
     if (!empty($value['wrap'])) {
-      $excel->getActiveSheet()->getStyle($keys[$i]['pdata'])->getAlignment()->setWrapText(true);
+      $excel->getActiveSheet()->getStyle($keys[$i])->getAlignment()->setWrapText(true);
     }
     ++$i;
   }
@@ -81,7 +94,7 @@ function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = arra
   $types = phpExcel_get_data_type();
 
   $keys = array_keys($rows);
-
+  
   foreach ($data as  $doc) {
     if (is_array($doc) || is_object($doc)) {
       $j = 0;
