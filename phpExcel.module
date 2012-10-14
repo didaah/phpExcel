@@ -31,8 +31,28 @@
  * @return void
  */
 function phpExcel_data_to_excel($header, $data, $filepath = NULL, $values = array(), $version = 'Excel2007') {
+  static $is_load;
 
-  module_include_file('Classes/PHPExcel.php', 'phpExcel');
+  if (!isset($is_load)) {
+    $classes = DIDA_ROOT . '/' . dd_get_path('module', 'phpExcel') . '/Classes/PHPExcel.php';
+    if (is_file($classes)) {
+      require_once $classes;
+      $is_load = true;
+    } else {
+      dd_set_message(t('phpExcel', '缺少 PHPExcel 类文件，请阅读模块说明文件'), 'error');
+    }
+  }
+
+//  if (!isset($cached)) {
+//    $cacheMethod = PHPExcel_CachedObjectStorageFactory::cache_to_memcache;  
+//    $cacheSettings = array(
+//      'memcacheServer' => 'localhost',  
+//      'memcachePort' => 11211,  
+//      'cacheTime' => 600
+//    );
+//    PHPExcel_Settings::setCacheStorageMethod($cacheMethod, $cacheSettings); 
+//    $cached = true;
+//  }
 
   $default_value = array(
     'Creator' => 'Dida', // 作者
@@ -201,3 +221,4 @@ function phpExcel_get_data_type($key = '') {
 
   return $key ? $types[$key] : $types;
 }
+
